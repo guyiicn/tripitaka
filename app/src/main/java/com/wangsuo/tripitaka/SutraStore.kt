@@ -39,9 +39,8 @@ class SutraStore private constructor(
         private const val DB_ASSET = "db/tripitaka.db"
         private const val DB_NAME = "tripitaka.db"
 
-        /** 首启把 assets 内的库拷到内部存储(只读打开需真实文件路径); 已存在且大小一致则跳过。 */
         fun open(ctx: Context): SutraStore {
-            val f = ensureDb(ctx)
+            val f = dbFile(ctx)
             val db = SQLiteDatabase.openDatabase(f.path, null, SQLiteDatabase.OPEN_READONLY)
             val dictBytes = rawKv(db, "dict") ?: ByteArray(0)
             return SutraStore(db, ZstdDictDecompress(dictBytes))
@@ -54,7 +53,24 @@ class SutraStore private constructor(
             return null
         }
 
-        private fun ensureDb(ctx: Context): File {
+        /** release: Play Asset Delivery install-time 资产包内直接读库(免拷贝); debug: 从 app assets 拷到内部存储。 */
+        private fun dbFile(ctx: Context): File {
+            packDbPath(ctx)?.let { p ->
+                val f = File(p)
+                if (f.exists() && f.length() > 0) return f
+            }
+            return ensureFromAssets(ctx)
+        }
+
+        private fun packDbPath(ctx: Context): String? = try {
+            val loc = com.google.android.play.core.assetpacks.AssetPackManagerFactory
+                .getInstance(ctx).getPackLocation("sutradb")
+            loc?.assetsPath()?.let { "$it/db/tripitaka.db" }
+        } catch (t: Throwable) {
+            null
+        }
+
+        private fun ensureFromAssets(ctx: Context): File {
             val out = File(ctx.filesDir, DB_NAME)
             val am = ctx.assets
             val expect = try { am.openFd(DB_ASSET).use { it.length } } catch (e: Exception) { -1L }

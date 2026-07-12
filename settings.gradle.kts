@@ -14,3 +14,4 @@ dependencyResolutionManagement {
 }
 rootProject.name = "Tripitaka"
 include(":app")
+include(":sutradb")
