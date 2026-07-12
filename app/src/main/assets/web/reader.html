@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-Hant"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>CBETA 竖排刻本閱讀</title>
+<style>
+@font-face{ font-family:'JHSong'; src:url(font/jhsong.woff2) format('woff2'); font-display:swap; }
+@font-face{ font-family:'JGSong'; src:url(font/jgsong.woff2) format('woff2'); font-display:swap; }
+@font-face{ font-family:'Wenkai'; src:url(font/wenkai.woff2) format('woff2'); font-display:swap; }
+@font-face{ font-family:'HW'; src:url(font/huiwen.woff2) format('woff2'); font-display:swap; }
+@font-face{ font-family:'QJ'; src:url(font/qiji.woff2) format('woff2'); font-display:swap; }
+@font-face{ font-family:'HANA1'; src:url(font/hana1.woff2) format('woff2'); font-display:swap; }
+@font-face{ font-family:'HANA2'; src:url(font/hana2.woff2) format('woff2'); font-display:swap; }
+:root{ --paper:#efe4cb; --paper2:#e7d8b8; --ink:#2a2015; --zhu:#9e2b22; --frame:#6b4a28; }
+*{box-sizing:border-box;}
+html,body{margin:0;}
+body{ height:100dvh; display:flex; flex-direction:column; overflow:hidden; padding:var(--safe-top,0px) var(--safe-right,0px) var(--safe-bottom,0px) var(--safe-left,0px);
+  background: radial-gradient(1200px 800px at 50% 40%, rgba(255,250,235,.5), transparent 70%),
+    repeating-linear-gradient(0deg, rgba(120,90,50,.03) 0 2px, transparent 2px 26px), var(--paper);
+  font-family:'JHSong','JGSong','Noto Serif CJK TC',serif; color:var(--ink); }
+.header{ flex:0 0 auto; display:flex; align-items:center; gap:.5em; padding:7px 12px; position:relative;
+  border-bottom:2px solid var(--frame); background:linear-gradient(0deg,var(--paper2),var(--paper)); font-family:sans-serif; }
+.btn{ cursor:pointer; padding:3px 9px; border:1px solid #b49a6a; border-radius:6px; color:var(--zhu); background:rgba(247,240,225,.6); font-size:14px; }
+.btn:hover{ background:#f3ead6; }
+.hlbl{ font-size:15px; color:var(--zhu); font-weight:600; }
+.hby{ font-size:12px; color:#6a5334; }
+.nav{ margin-left:auto; font-size:13px; color:#6a5334; white-space:nowrap; display:flex; align-items:center; }
+.nav b{ cursor:pointer; padding:2px 8px; margin:0 1px; border:1px solid #b49a6a; border-radius:5px; color:#6a5334; }
+.nav b.on{ background:var(--zhu); color:#f6efe1; border-color:var(--zhu); }
+.nav .juan{ margin:0 6px; color:#8a6a3a; }
+.toc{ position:absolute; top:100%; left:8px; z-index:20; width:min(320px,86vw); max-height:70vh; overflow:auto;
+  background:var(--paper); border:2px solid var(--frame); border-radius:8px; box-shadow:0 8px 30px rgba(60,40,15,.3); padding:8px; }
+.toc a,.toc .ti{ display:block; padding:5px 8px; text-decoration:none; color:var(--ink); font-size:14px; border-radius:5px; cursor:pointer; }
+.toc a:hover,.toc .ti:hover{ background:#f3ead6; }
+.toc .hd{ color:var(--zhu); font-weight:600; font-size:12px; margin:8px 4px 2px; border-bottom:1px solid #c9b184; }
+.toc .ti.fen{ color:var(--zhu); } .toc .ti.xu{ color:#6a5334; }
+/* 閱讀區: 左右版框(鱼尾+书耳) + 中間橫向滾動 */
+.reading{ flex:1 1 auto; min-height:0; display:flex; }
+.rail{ flex:0 0 42px; position:relative; display:flex; flex-direction:column; align-items:center; overflow:hidden;
+  background:linear-gradient(90deg,var(--paper2),var(--paper)); }
+.rail.left{ border-right:3px double var(--frame); }
+.rail.right{ border-left:3px double var(--frame); }
+.fishtail{ width:22px; height:30px; margin-top:16px; background:var(--frame); flex:0 0 auto;
+  clip-path:polygon(0 0,100% 0,100% 42%,50% 100%,0 42%); }
+.fishtail.b{ margin-top:auto; margin-bottom:16px; clip-path:polygon(50% 0,100% 58%,100% 100%,0 100%,0 58%); }
+.earlbl{ writing-mode:vertical-rl; text-orientation:upright; margin-top:20px; font-size:15px; color:var(--zhu);
+  letter-spacing:.12em; border:1px solid var(--frame); border-radius:3px; padding:9px 3px; background:rgba(255,250,238,.55); font-weight:600; }
+.scroll{ flex:1 1 auto; min-width:0; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch;
+  white-space:nowrap; padding:14px 0; }
+.frame{ display:inline-block; height:100%; margin:0 10px; padding:12px 18px;
+  border:2px solid var(--frame); box-shadow: inset 0 0 0 1px var(--frame), 0 6px 24px rgba(80,50,20,.16);
+  background: linear-gradient(0deg,var(--paper2),var(--paper)); }
+.sutra{ writing-mode:vertical-rl; -webkit-writing-mode:vertical-rl; text-orientation:upright; height:100%; line-height:1; letter-spacing:0;
+  font-family:var(--bf,'JHSong'),'JGSong','HANA1','HANA2','Noto Serif CJK TC',serif; }
+.col{ display:block; height:100%; border-right:1px solid rgba(120,90,50,.22); padding-right:.16em; margin-right:.16em; }
+.c{ position:relative; display:inline-block; }
+.c.ju::after,.c.dou::after{ position:absolute; color:var(--zhu); font-size:.4em; line-height:1; right:-.36em; bottom:-.02em; }
+.c.ju::after{ content:"○"; } .c.dou::after{ content:"、"; }
+.col.title{ font-weight:600; } .col.title .c{ font-size:1.16em; }
+.col.trans{ padding-top:2.2em; } .col.trans .c{ font-size:.6em; color:#5a4632; }
+.col.fen{ padding-top:.6em; } .col.fen .c{ color:var(--zhu); font-size:.9em; }
+.col.xu{ padding-top:.6em; } .col.xu .c{ font-family:'Wenkai','JGSong','HANA1','HANA2',serif; color:#6a5334; font-size:.86em; }
+.col.xub .c{ font-family:'Wenkai','JGSong','HANA1','HANA2',serif; color:#4a3a26; }
+.pc{ display:inline-block; writing-mode:vertical-rl; -webkit-writing-mode:vertical-rl; text-orientation:upright;
+  width:1em; height:.5em; vertical-align:top; overflow:hidden; }
+.pc>b{ display:block; font-size:.5em; line-height:1; font-weight:normal; color:#4a3a26; }
+.pc>b.gxn::before{ content:""; display:inline-block; width:.72em; height:.72em; border:1px solid #b08a5a; box-sizing:border-box; }
+.gx{ display:inline-block; position:relative; }
+.gx::before{ content:""; display:inline-block; width:.66em; height:.66em; border:1px solid #b08a5a; box-sizing:border-box; margin:.17em; vertical-align:middle; }
+#toast{ position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:rgba(60,40,20,.9); color:#f6efe1;
+  padding:8px 16px; border-radius:20px; font-family:sans-serif; font-size:14px; display:none; z-index:30; }
+.kbd{ position:fixed; right:52px; bottom:8px; font-family:sans-serif; font-size:11px; color:#9a805a; background:rgba(239,228,203,.82); padding:2px 8px; border-radius:6px; }
+@media (max-width:560px){ .hby,.kbd{ display:none; } .reading .rail{ display:none; } }
+</style></head>
+<body>
+  <div class="header">
+    <span class="btn" id="tocbtn">☰ 目錄</span>
+    <span class="btn" id="fontbtn" title="切換字體">字</span>
+    <span class="btn" id="notebtn" title="夾註 顯示/隱藏">注</span>
+    <span class="btn" id="bmbtn" title="加入書籤">☆</span>
+    <span class="hlbl" id="jtitle"></span><span class="hby" id="jby"></span>
+    <span class="nav" id="nav"></span>
+    <div class="toc" id="toc" style="display:none"></div>
+    <div class="toc" id="fontmenu" style="display:none;left:56px;"></div>
+  </div>
+  <div class="reading">
+    <div class="rail left"><div class="fishtail"></div><div class="earlbl" id="earL"></div><div class="fishtail b"></div></div>
+    <div class="scroll" id="scroll"><div class="frame"><div class="sutra" id="sutra"></div></div></div>
+    <div class="rail right"><div class="fishtail"></div><div class="earlbl" id="earR"></div><div class="fishtail b"></div></div>
+  </div>
+  <div id="toast"></div>
+  <div class="kbd">← → 翻頁 · 滾輪橫翻 · Home 回篇首</div>
+<script>window.setSafe=function(t,r,b,l){var s=document.documentElement.style;s.setProperty("--safe-top",t+"px");s.setProperty("--safe-right",r+"px");s.setProperty("--safe-bottom",b+"px");s.setProperty("--safe-left",l+"px");requestAnimationFrame(function(){if(window.apply)apply();});};
+var qs=new URLSearchParams(location.search); var TID=qs.get('t')||'T0235'; var JN=qs.get('j')||null;
+var N=parseInt(qs.get('n'))||17; var META=null, DATA=null, XR=[];
+var SHOWNOTE=localStorage.getItem('cbeta_note')!=='0';
+var BRK='（）()〔〕【】《》〈〉「」『』';
+function $(id){ return document.getElementById(id); }
+function stripBr(s){ s=(s||'').replace(/[（(〔【\[][^）)〕】\]]*[）)〕】\]]/g,'').replace(/[（(）)〔〕【】\[\]「」『』《》〈〉]/g,'').trim(); return s; }
+function addCol(su,cls){ var c=document.createElement('div'); c.className='col'+(cls?(' '+cls):''); su.appendChild(c); return c; }
+function addC(col,ch,m){ var s=document.createElement('span'); s.className='c'+(m?(' '+m):''); s.textContent=(BRK.indexOf(ch)>=0?'':ch); col.appendChild(s); }
+function pushNoteCells(cells,txt){ var a=Array.from(txt).filter(function(c){return BRK.indexOf(c)<0;}),L=a.length,h=Math.ceil(L/2); for(var k=0;k<h;k++) cells.push({k:'pc',r:a[k],l:(a[k+h]||'')}); }
+function pcCell(ch){ var b=document.createElement('b'); if(ch==='□') b.className='gxn'; else b.textContent=ch; return b; }
+function addPC(col,r,l){ var pc=document.createElement('span'); pc.className='pc';
+  pc.appendChild(pcCell(r)); pc.appendChild(pcCell(l||'')); col.appendChild(pc); }
+function addGaiji(col,formula){ var g=document.createElement('span'); g.className='gx'; g.title='缺字：'+formula; col.appendChild(g); }
+function inXr(i){ for(var k=0;k<XR.length;k++){ if(i>=XR[k][0]&&i<XR[k][1]) return true; } return false; }
+function render(){
+  var su=$('sutra'); su.innerHTML=''; if(!DATA) return;
+  var ju={}, dou={}, fenAt={}, brSet={}; XR=DATA.xr||[];
+  DATA.ju.forEach(function(i){ ju[i]=1; }); DATA.dou.forEach(function(i){ dou[i]=1; });
+  DATA.fen.forEach(function(f,idx){ (fenAt[f[0]]=fenAt[f[0]]||[]).push([f[1], f[2]||'fen', idx]); });
+  (DATA.br||[]).forEach(function(i){ brSet[i]=1; });
+  var noteAt={}; if(SHOWNOTE) (DATA.note||[]).forEach(function(nt){ (noteAt[nt[0]]=noteAt[nt[0]]||[]).push(nt[1]); });
+  var gxSet={}; (DATA.gx||[]).forEach(function(g){ gxSet[g[0]]=g[1]; });
+  if(DATA.juan===META.juans[0]){
+    var tt=Array.from(stripBr(DATA.title)||DATA.title); var tN=Math.max(1,Math.round(N/1.16)); for(var to=0;to<tt.length;to+=tN){ var ct=addCol(su,'title'); for(var k=to;k<Math.min(to+tN,tt.length);k++) addC(ct,tt[k]); }
+    if(DATA.by){ var bb=Array.from(stripBr(DATA.by)); var cb=addCol(su,'trans'); for(var k2=0;k2<bb.length;k2++) addC(cb,bb[k2]); }
+  }
+  var t=Array.from(DATA.text), cells=[];
+  if(noteAt[-1]) noteAt[-1].forEach(function(x){ pushNoteCells(cells,x); });
+  for(var i=0;i<t.length;i++){
+    if(fenAt[i]) cells.push({k:'fen',i:i});
+    else if(brSet[i]) cells.push({k:'br'});
+    cells.push({k:'c',ch:t[i],m:ju[i]?'ju':(dou[i]?'dou':''),i:i});
+    var nts=noteAt[i]; if(nts) nts.forEach(function(x){ pushNoteCells(cells,x); });
+  }
+  var col=null,cnt=0,curxr=false;
+  for(var ci=0;ci<cells.length;ci++){
+    var ce=cells[ci];
+    if(ce.k==='fen'){ fenAt[ce.i].forEach(function(pr){ var cf=addCol(su,pr[1]); cf.id='fen'+pr[2]; var fl=Array.from(stripBr(pr[0])||pr[0]); for(var z=0;z<fl.length;z++) addC(cf,fl[z]); }); col=null; cnt=0; continue; }
+    if(ce.k==='br'){ col=null; cnt=0; continue; }
+    if(ce.k==='c') curxr=inXr(ce.i);
+    var w=(ce.k==='pc')?0.5:1;
+    if(!col||(cnt>0&&cnt+w>N+0.01)){ col=addCol(su, curxr?'xub':''); cnt=0; }
+    if(ce.k==='c'){ if(gxSet[ce.i]!==undefined) addGaiji(col,gxSet[ce.i]); else addC(col,ce.ch,ce.m); } else addPC(col,ce.r,ce.l);
+    cnt+=w;
+  }
+  sizeFont();
+}
+function sizeFont(){ var su=$('sutra'); var sc=$('scroll'), fr=su.parentElement; if(sc&&fr) fr.style.height=(sc.clientHeight-28)+'px'; var col=su.querySelector('.col:not(.title):not(.trans):not(.fen):not(.xu)')||su.querySelector('.col');
+  if(!col) return; su.style.fontSize=Math.floor(col.clientHeight/N*0.985)+'px'; toStart(); }
+function fit(){ document.body.style.height=window.innerHeight+'px'; }
+function toStart(){ var s=$('scroll'); if(s){ s.scrollLeft=s.scrollWidth; } }
+function apply(){ fit(); sizeFont(); requestAnimationFrame(function(){ sizeFont(); toStart(); requestAnimationFrame(toStart); }); }
+function scrollToEl(el){ var s=$('scroll'); var sr=s.getBoundingClientRect(), er=el.getBoundingClientRect(); s.scrollLeft += (er.right - sr.right); }
+function colW(){ var c=$('sutra').querySelector('.col:not(.title):not(.trans)'); return c?c.getBoundingClientRect().width:42; }
+function pageMove(dir){ var s=$('scroll'); var cw=colW()||42; var cols=Math.max(1,Math.floor(s.clientWidth*0.86/cw)); s.scrollLeft += dir*cols*cw; }
+function buildNav(){
+  var n=$('nav'); var idx=META.juans.indexOf(DATA.juan); var h='';
+  if(META.juans.length>1){
+    h+=(idx>0?'<b onclick="go(\''+META.juans[idx-1]+'\')">‹卷</b>':'');
+    h+='<span class="juan">卷'+parseInt(DATA.juan)+'/'+META.juans.length+'</span>';
+    h+=(idx<META.juans.length-1?'<b onclick="go(\''+META.juans[idx+1]+'\')">卷›</b>':'');
+  }
+  h+=' <b '+(N==15?'class=on':'')+' onclick="setN(15)">15</b><b '+(N==17?'class=on':'')+' onclick="setN(17)">17</b><b '+(N==20?'class=on':'')+' onclick="setN(20)">20</b>';
+  n.innerHTML=h;
+}
+function buildToc(){
+  var t=$('toc'); var h='<a href="index.html">◇ 回總目錄</a>';
+  if(META.juans.length>1){ h+='<div class="hd">卷</div>'; META.juans.forEach(function(j){
+    h+='<div class="ti" onclick="go(\''+j+'\');closeToc()">卷 '+parseInt(j)+(j===DATA.juan?' ·當前':'')+'</div>'; }); }
+  var fens=DATA.fen||[];
+  if(fens.length){ h+='<div class="hd">品／科判</div>'; fens.forEach(function(f,idx){
+    h+='<div class="ti '+(f[2]||'fen')+'" onclick="jumpFen('+idx+')">'+f[1]+'</div>'; }); }
+  t.innerHTML=h;
+}
+window.jumpFen=function(idx){ var el=$('fen'+idx); if(el) scrollToEl(el); closeToc(); };
+window.go=function(jn){ JN=jn; loadJuan(); };
+window.setN=function(x){ N=x; buildNav(); render(); apply(); };
+window.closeToc=function(){ $('toc').style.display='none'; };
+$('tocbtn').addEventListener('click',function(e){ e.stopPropagation(); $('fontmenu').style.display='none'; var t=$('toc'); t.style.display=(t.style.display==='none'?'block':'none'); });
+document.addEventListener('click',function(e){
+  if(!$('toc').contains(e.target)&&e.target!==$('tocbtn')) closeToc();
+  if(!$('fontmenu').contains(e.target)&&e.target!==$('fontbtn')) $('fontmenu').style.display='none';
+});
+// 字體切換
+var FONTS=[['jh','JHSong','京華老宋体'],['hw','HW','汇文明朝体'],['qj','QJ','令东齐伋体·明刻本'],['nt','JGSong','思源宋体'],['wk','Wenkai','霞鹜文楷']];
+function curFont(){ return localStorage.getItem('cbeta_font')||'jh'; }
+function applyFont(){ var id=curFont(); var f=null; for(var i=0;i<FONTS.length;i++){ if(FONTS[i][0]===id) f=FONTS[i]; } if(!f) f=FONTS[0];
+  document.documentElement.style.setProperty('--bf', "'"+f[1]+"'"); }
+function buildFontMenu(){ var m=$('fontmenu'); var cur=curFont(); var h='<div class="hd">正文字體</div>';
+  FONTS.forEach(function(f){ h+='<div class="ti" onclick="setFont(\''+f[0]+'\')">'+(f[0]===cur?'● ':'○ ')+f[2]+'</div>'; });
+  h+='<div class="hd" style="border:none;color:#8a6a3a;font-weight:400">序文恒用楷体</div>'; m.innerHTML=h; }
+window.setFont=function(id){ localStorage.setItem('cbeta_font',id); applyFont(); buildFontMenu(); $('fontmenu').style.display='none';
+  if(document.fonts&&document.fonts.ready){ document.fonts.ready.then(function(){ apply(); }); }
+  [120,450,1000].forEach(function(t){ setTimeout(apply,t); }); };
+$('fontbtn').addEventListener('click',function(e){ e.stopPropagation(); closeToc(); buildFontMenu(); var m=$('fontmenu'); m.style.display=(m.style.display==='none'?'block':'none'); });
+applyFont();
+// 夾註開關
+function syncNote(){ $('notebtn').style.color=SHOWNOTE?'#c0392b':'#9a805a'; $('notebtn').title=SHOWNOTE?'夾註：顯示（點擊隱藏）':'夾註：隱藏（點擊顯示）'; }
+$('notebtn').addEventListener('click',function(){ SHOWNOTE=!SHOWNOTE; localStorage.setItem('cbeta_note',SHOWNOTE?'1':'0'); syncNote(); render(); apply(); });
+syncNote();
+// 書籤
+function getBm(){ try{return JSON.parse(localStorage.getItem('cbeta_bm')||'[]');}catch(e){return[];} }
+function toast(s){ var t=$('toast'); t.textContent=s; t.style.display='block'; setTimeout(function(){t.style.display='none';},1600); }
+$('bmbtn').addEventListener('click',function(){ var bm=getBm(); var key=TID+'/'+DATA.juan;
+  var ex=bm.some(function(x){return x.k===key;});
+  if(ex){ bm=bm.filter(function(x){return x.k!==key;}); toast('已移除書籤'); }
+  else{ bm.unshift({k:key,t:TID,j:DATA.juan,title:DATA.title,juan:parseInt(DATA.juan)}); toast('★ 已加入書籤'); }
+  localStorage.setItem('cbeta_bm',JSON.stringify(bm.slice(0,300))); syncBm();
+});
+function syncBm(){ var bm=getBm(); var on=bm.some(function(x){return x.k===TID+'/'+(DATA?DATA.juan:JN);}); $('bmbtn').textContent=on?'★':'☆'; $('bmbtn').style.color=on?'#c0392b':''; }
+function cnum(n){ n=parseInt(n)||1; var d='〇一二三四五六七八九';
+  if(n<10) return d[n]; if(n===10) return '十'; if(n<20) return '十'+d[n-10];
+  if(n<100){ var t=Math.floor(n/10),o=n%10; return d[t]+'十'+(o?d[o]:''); } return ''+n; }
+function setEars(){ var s=(stripBr(DATA.title)||DATA.title).slice(0,9)+' 卷'+cnum(DATA.juan);
+  $('earL').textContent=s; $('earR').textContent=s; }
+function loadJuan(){
+  fetch('data/'+TID+'/'+JN+'.json').then(function(r){return r.json();}).then(function(d){
+    DATA=d; $('jtitle').textContent=stripBr(d.title)||d.title; $('jby').textContent=d.by||'';
+    document.title=(stripBr(d.title)||d.title)+' · CBETA'; buildNav(); buildToc(); setEars(); render(); apply(); syncBm();
+  }).catch(function(e){ $('jtitle').textContent='載入失敗'; });
+}
+fetch('data/'+TID+'/_meta.json').then(function(r){return r.json();}).then(function(m){ META=m; if(!JN) JN=m.juans[0]; loadJuan(); });
+// 鍵盤 & 滾輪(整列翻, 消除半列切割)
+document.addEventListener('keydown',function(e){
+  if(e.key==='ArrowLeft'||e.key==='ArrowDown'||e.key==='PageDown'||e.key===' '){ pageMove(-1); e.preventDefault(); }
+  else if(e.key==='ArrowRight'||e.key==='ArrowUp'||e.key==='PageUp'){ pageMove(1); e.preventDefault(); }
+  else if(e.key==='Home'){ toStart(); }
+});
+$('scroll').addEventListener('wheel',function(e){ if(Math.abs(e.deltaY)>=Math.abs(e.deltaX)){ this.scrollLeft-=e.deltaY; e.preventDefault(); } },{passive:false});
+window.addEventListener('resize',apply); window.addEventListener('orientationchange',function(){ setTimeout(apply,220); });
+if(document.fonts&&document.fonts.ready){ document.fonts.ready.then(apply); }
+[300,800,1500].forEach(function(t){ setTimeout(function(){ if(DATA) apply(); },t); });
+if(window.ResizeObserver){ var ro=new ResizeObserver(function(){ toStart(); }); ro.observe($('scroll')); ro.observe($('sutra')); }
+</script>
+</body></html>

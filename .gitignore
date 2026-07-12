@@ -1,0 +1,22 @@
+# Build
+build/
+app/build/
+.gradle/
+*.apk
+*.aab
+
+# Local config
+local.properties
+.idea/
+*.iml
+captures/
+
+# 大二进制 (第三方数据/字体, 自行生成/获取)
+app/src/main/assets/db/
+app/src/main/assets/web/font/
+*.db
+*.woff2
+*.ttf
+
+# OS
+.DS_Store

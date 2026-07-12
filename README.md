@@ -1,0 +1,60 @@
+# 大藏經 · 竖排刻本閱讀 / Vertical Woodblock Tripitaka Reader
+
+一款把 **CBETA 电子佛典**以**古籍竖排刻本**风格呈现的阅读器 —— Android App + Web，**完全离线**。
+
+A reader that renders the **CBETA Buddhist canon** in the style of a **vertical
+woodblock print**, as an Android app and a web page, **fully offline**.
+
+在线体验 / Live demo: <https://hk2.guyii.net/cbeta/>
+
+---
+
+## 特性 / Features
+
+- **竖排右起**、固定每列字数（15/17/20 可切）、朱色句读圈点
+- **雙行夾註**（古籍夹注双行小字）、序题楷体、卷/品分题
+- **缺字**（CBETA 组字式）以 □ 占位；**生僻字**（Ext-B+）以 Plangothic 兜底
+- 5 款可切正文字体（京華老宋 / 汇文明朝 / 令东齐伋 / 思源宋 / 霞鹜文楷）
+- 目录折叠浏览、简体搜索、书签、夹注开关
+- Android：完全离线，经藏库随包（zstd + 训练词典压缩）；平板/手机自适应
+
+## 结构 / Structure
+
+```
+.                     Android app (Gradle, Kotlin, minSdk 26 / target 34)
+├── app/
+│   ├── src/main/java/com/wangsuo/tripitaka/
+│   │   ├── MainActivity.kt      # 全屏 WebView + WebViewAssetLoader + 系统栏避让
+│   │   ├── DataPathHandler.kt   # 拦截 data/*、catalog.json → SQLite
+│   │   └── SutraStore.kt        # SQLite + zstd(词典) 只读经藏库
+│   └── src/main/assets/web/
+│       ├── index.html           # 首页目录
+│       ├── reader.html          # 竖排渲染器（纯前端，Web/App 共用）
+│       └── about.html           # 关于/版权
+└── pipeline/                    数据管线（Python）
+    ├── cbeta_prep.py            # CBETA txt → 紧凑 JSON（含夹注/缺字/序/句读）
+    ├── batch_notes.py           # 存量 JSON 批量补夹注/缺字（幂等）
+    └── build_db.py              # JSON → SQLite（zstd + 训练词典）
+```
+
+## 构建 / Build
+
+**数据（不含在仓库）**：需 CBETA 电子佛典纯文本，跑
+`pipeline/cbeta_prep.py <out> ALL` 生成 JSON，再 `pipeline/build_db.py` 打成
+`app/src/main/assets/db/tripitaka.db`。
+
+**字体（不含在仓库）**：从 `NOTICE.md` 列出的来源获取，用 `fontTools` 子集化后
+放入 `app/src/main/assets/web/font/`。
+
+**APK**：`./gradlew assembleDebug`（JDK 17 + Android SDK 34）。
+正式版经藏库走 Play Asset Delivery install-time 资产包。
+
+## 许可 / License
+
+- **源代码**：MIT（见 `LICENSE`）
+- **经文数据**：CBETA 授权（非营利 + 署名）
+- **字体**：各自协议（SIL OFL 1.1 / 免费商用，见 `NOTICE.md`）
+
+## 作者 / Author
+
+guyiicn@gmail.com

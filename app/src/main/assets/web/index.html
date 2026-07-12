@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-Hant"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>CBETA 竖排刻本 · 大藏經閱讀</title>
+<style>
+:root{ --paper:#efe4cb; --paper2:#e7d8b8; --ink:#2a2015; --zhu:#9e2b22; --frame:#6b4a28; }
+*{box-sizing:border-box;}
+body{ margin:0; min-height:100vh; font-family:"Noto Serif CJK TC","Songti SC",serif; color:var(--ink);
+  background: radial-gradient(1200px 800px at 50% 20%, rgba(255,250,235,.5), transparent 70%),
+    repeating-linear-gradient(0deg, rgba(120,90,50,.03) 0 2px, transparent 2px 26px), var(--paper); }
+.wrap{ max-width:1100px; margin:0 auto; padding:calc(24px + var(--safe-top,0px)) calc(18px + var(--safe-right,0px)) calc(60px + var(--safe-bottom,0px)) calc(18px + var(--safe-left,0px)); }
+h1{ color:var(--zhu); font-size:30px; letter-spacing:.1em; margin:.2em 0; }
+.sub{ color:#6a5334; font-size:14px; margin-bottom:18px; }
+.bar{ position:sticky; top:var(--safe-top,0px); z-index:5; padding:10px 0; background:linear-gradient(0deg,transparent,var(--paper) 30%); }
+#q{ width:100%; max-width:460px; padding:10px 14px; font-size:16px; border:1.5px solid #b49a6a; border-radius:8px;
+  background:var(--paper2); color:var(--ink); }
+.canon{ margin:10px 0 0; color:var(--zhu); font-weight:600; border-bottom:1px solid #c9b184; padding:7px 4px;
+  cursor:pointer; display:flex; align-items:center; gap:8px; user-select:none; }
+.canon:hover{ background:rgba(158,43,34,.06); }
+.canon .caret{ font-size:12px; transition:transform .15s; color:#8a6a3a; }
+.canon.open .caret{ transform:rotate(90deg); }
+.cnt{ color:#8a6a3a; font-size:12px; font-weight:400; margin-left:auto; }
+.grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:8px; margin:8px 0; }
+.grid.hide{ display:none; }
+a.item{ display:block; padding:9px 12px; border:1px solid #cbb488; border-radius:7px; background:rgba(247,240,225,.6);
+  text-decoration:none; color:var(--ink); }
+a.item:hover{ background:#f3ead6; border-color:var(--zhu); }
+.it-t{ font-size:16px; } .it-m{ font-size:12px; color:#7a6444; margin-top:2px; }
+.loading{ color:#6a5334; padding:2em 0; }
+.bm{ margin:6px 0 14px; padding:10px 12px; border:1px solid #cbb488; border-radius:9px; background:rgba(247,240,225,.55); }
+.bm h2{ margin:0 0 8px; font-size:15px; color:var(--zhu); display:flex; align-items:center; }
+.bm .clr{ margin-left:auto; font-size:12px; color:#8a6a3a; cursor:pointer; font-weight:400; }
+.bmgrid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:6px; }
+.bmi{ display:flex; align-items:center; padding:6px 9px; border:1px solid #d4bf94; border-radius:6px; background:rgba(255,250,238,.7); }
+.bmi a{ text-decoration:none; color:var(--ink); font-size:14px; flex:1; }
+.bmi a:hover{ color:var(--zhu); } .bmi .del{ cursor:pointer; color:#b08a5a; font-size:15px; padding:0 3px; }
+</style></head>
+<body><div class="wrap">
+  <h1>大藏經 · 竖排刻本閱讀</h1>
+  <div class="sub">CBETA 電子佛典 · 竖排右起 · 固定字/行 · 朱色句讀圈點 · 昭明/卷品分題</div>
+  <div style="margin:-8px 0 14px"><a href="about.html" style="color:#8a3b2f;font-size:13px;text-decoration:none">關於 · 字體與經文來源 · 開源 ›</a></div>
+  <div class="bar"><input id="q" placeholder="搜尋經名 / 經號（如 心經、金剛、T0262）… "></div>
+  <div id="bm"></div>
+  <div id="list" class="loading">目錄載入中…</div>
+</div>
+<script>window.setSafe=function(t,r,b,l){var s=document.documentElement.style;s.setProperty("--safe-top",t+"px");s.setProperty("--safe-right",r+"px");s.setProperty("--safe-bottom",b+"px");s.setProperty("--safe-left",l+"px");if(window.apply)apply();};
+var CANON={T:"大正藏",X:"卍續藏",J:"嘉興藏",B:"補編",A:"趙城金藏",K:"高麗藏",L:"乾隆藏",M:"卍正藏",N:"南傳",P:"永樂北藏",C:"中華藏",D:"國圖",F:"房山石經",G:"佛教藏",GA:"藏外",GB:"藏外",I:"敦煌",S:"石經",TX:"太虛",CC:"CBETA",LC:"呂澂"};
+var CAT=[], BYCANON={}, ORDER=[];
+fetch('catalog.json').then(function(r){return r.json();}).then(function(d){ CAT=d;
+  CAT.forEach(function(x){ (BYCANON[x.canon]=BYCANON[x.canon]||[]).push(x); });
+  ORDER=Object.keys(BYCANON).sort(); drawBm(); draw(''); });
+document.getElementById('q').addEventListener('input',function(e){ draw(e.target.value.trim()); });
+
+function getBm(){ try{return JSON.parse(localStorage.getItem('cbeta_bm')||'[]');}catch(e){return[];} }
+function drawBm(){
+  var bm=getBm(); var el=document.getElementById('bm');
+  if(!bm.length){ el.innerHTML=''; return; }
+  var h='<div class="bm"><h2>★ 書籤<span class="clr" onclick="clearBm()">清空</span></h2><div class="bmgrid">';
+  bm.forEach(function(x,i){
+    h+='<div class="bmi"><a href="reader.html?t='+x.t+'&j='+x.j+'">'+x.title+(x.juan?' 卷'+x.juan:'')+'</a><span class="del" onclick="delBm('+i+')">✕</span></div>';
+  });
+  h+='</div></div>'; el.innerHTML=h;
+}
+window.delBm=function(i){ var bm=getBm(); bm.splice(i,1); localStorage.setItem('cbeta_bm',JSON.stringify(bm)); drawBm(); };
+window.clearBm=function(){ if(confirm('清空全部書籤？')){ localStorage.removeItem('cbeta_bm'); drawBm(); } };
+
+function card(x){ return '<a class="item" href="reader.html?t='+x.id+'"><div class="it-t">'+x.title+(x.juans>1?' <span class=cnt>'+x.juans+'卷</span>':'')+'</div><div class="it-m">'+x.id+(x.by?' · '+x.by:'')+'</div></a>'; }
+
+function draw(q){
+  var list=document.getElementById('list'); list.className='';
+  if(q){
+    var items=CAT.filter(function(x){ return (x.title&&x.title.indexOf(q)>=0)||(x.s&&x.s.indexOf(q)>=0)||(x.id&&x.id.toUpperCase().indexOf(q.toUpperCase())>=0)||(x.by&&x.by.indexOf(q)>=0); });
+    if(!items.length){ list.innerHTML='<div class="loading">無結果</div>'; return; }
+    var by={}; items.forEach(function(x){ (by[x.canon]=by[x.canon]||[]).push(x); });
+    var h=''; Object.keys(by).sort().forEach(function(cn){
+      h+='<div class="canon open"><span class="caret">▶</span>'+(CANON[cn]||cn)+'（'+cn+'）<span class="cnt">'+by[cn].length+' 部</span></div><div class="grid">';
+      by[cn].slice(0,2000).forEach(function(x){ h+=card(x); }); h+='</div>';
+    });
+    list.innerHTML=h; return;
+  }
+  // 無搜尋：按藏經折疊（手風琴），預設全部收起
+  var h='';
+  ORDER.forEach(function(cn){
+    h+='<div class="canon" data-cn="'+cn+'"><span class="caret">▶</span>'+(CANON[cn]||cn)+'（'+cn+'）<span class="cnt">'+BYCANON[cn].length+' 部</span></div><div class="grid hide" data-g="'+cn+'"></div>';
+  });
+  list.innerHTML=h;
+  Array.prototype.forEach.call(list.querySelectorAll('.canon'),function(hd){
+    hd.addEventListener('click',function(){ toggleCanon(hd.getAttribute('data-cn')); });
+  });
+}
+function toggleCanon(cn){
+  var list=document.getElementById('list');
+  var hd=list.querySelector('.canon[data-cn="'+cn+'"]');
+  var g=list.querySelector('.grid[data-g="'+cn+'"]');
+  var open=hd.classList.toggle('open'); g.classList.toggle('hide',!open);
+  if(open && !g.getAttribute('data-filled')){
+    var arr=BYCANON[cn], lim=Math.min(arr.length,400), h='';
+    for(var i=0;i<lim;i++) h+=card(arr[i]);
+    if(arr.length>lim) h+='<div class="loading">…共 '+arr.length+' 部，其餘請用上方搜尋查看</div>';
+    g.innerHTML=h; g.setAttribute('data-filled','1');
+  }
+}
+</script>
+</body></html>
