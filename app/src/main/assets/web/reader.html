@@ -79,6 +79,10 @@ body.folds .col.fold{ border-right:1.5px solid rgba(120,90,50,.5);
   box-shadow:0 6px 22px rgba(0,0,0,.32), inset 0 0 0 3px rgba(255,252,244,.62), inset 0 0 0 4.5px rgba(120,90,50,.4); }
 .coveryz{ position:absolute; bottom:6.5%; writing-mode:vertical-rl; text-orientation:upright; color:rgba(242,234,212,.85);
   font-family:'JHSong',serif; letter-spacing:.1em; text-shadow:0 1px 4px rgba(0,0,0,.45); }
+.coverleaf .dragon{ position:absolute; inset:0; background:url('plate/dragon-frame.png') center/100% 100% no-repeat;
+  mix-blend-mode:screen; pointer-events:none; }   /* 御製 云龙版框(黑底金龙, screen 叠加) */
+.qianti.imperial{ background:linear-gradient(100deg,#f8f0d6,#f0e3b4); border-color:#b78f2c;
+  box-shadow:0 6px 22px rgba(0,0,0,.38), inset 0 0 0 3px rgba(255,252,238,.7), inset 0 0 0 4.5px rgba(183,143,44,.6); }
 .c{ position:relative; display:inline-block; }
 .c.ju::after,.c.dou::after{ position:absolute; color:var(--zhu); font-size:.4em; line-height:1; right:-.36em; bottom:-.02em; }
 .c.ju::after{ content:"○"; } .c.dou::after{ content:"、"; }
@@ -152,6 +156,14 @@ function detectVerses(text, ju, dou){
     i++; }
   return brk;
 }
+// 敬空抬头: 仅在序区间(xr)或御製经内, 荣衔前空一格(溢出列则自然抬头)
+function detectJing(text, XR, imperial){
+  var pos={}, re=/皇帝|陛下|天子|聖躬|世尊|如來|菩薩|佛/g, m;
+  while((m=re.exec(text))){ var p=m.index, ok=imperial;
+    if(!ok&&XR) for(var k=0;k<XR.length;k++){ if(p>=XR[k][0]&&p<XR[k][1]){ ok=true; break; } }
+    if(ok) pos[p]=1; }
+  return pos;
+}
 function render(){
   var su=$('sutra'); su.innerHTML=''; if(!DATA) return;
   var ju={}, dou={}, fenAt={}, brSet={}; XR=DATA.xr||[];
@@ -168,11 +180,13 @@ function render(){
   }
   var t=Array.from(DATA.text), cells=[];
   var vbrk = STYLE.verse ? detectVerses(DATA.text, ju, dou) : null;   // 偈颂每句换列位置
+  var jing = STYLE.jing ? detectJing(DATA.text, XR, /御製|御制/.test(DATA.title||'')) : null;  // 敬空位置
   if(noteAt[-1]) noteAt[-1].forEach(function(x){ pushNoteCells(cells,x); });
   for(var i=0;i<t.length;i++){
     if(fenAt[i]) cells.push({k:'fen',i:i});
     else if(brSet[i]) cells.push({k:'br'});
     else if(vbrk&&vbrk[i]) cells.push({k:'vbr'});
+    if(jing&&jing[i]) cells.push({k:'sp'});          // 敬空(字前空格, 不换列)
     cells.push({k:'c',ch:t[i],m:ju[i]?'ju':(dou[i]?'dou':''),i:i});
     var nts=noteAt[i]; if(nts) nts.forEach(function(x){ pushNoteCells(cells,x); });
   }
@@ -182,6 +196,7 @@ function render(){
     if(ce.k==='fen'){ fenAt[ce.i].forEach(function(pr){ var cf=addCol(su,pr[1]); cf.id='fen'+pr[2]; var fl=Array.from(stripBr(pr[0])||pr[0]); for(var z=0;z<fl.length;z++) addC(cf,fl[z]); }); col=null; cnt=0; continue; }
     if(ce.k==='br'){ col=null; cnt=0; continue; }
     if(ce.k==='vbr'){ col=null; cnt=0; nextVerse=true; continue; }   // 偈句换列
+    if(ce.k==='sp'){ if(col&&cnt>0&&cnt+1<=N+0.01){ addC(col,'　'); cnt+=1; } continue; }   // 敬空(溢出则跳过→荣衔抬到下列顶)
     if(ce.k==='c') curxr=inXr(ce.i);
     var w=(ce.k==='pc')?0.5:1;
     if(!col||(cnt>0&&cnt+w>N+0.01)){ col=addCol(su, curxr?'xub':''); cnt=0; if(nextVerse){ col.classList.add('verse'); nextVerse=false; } if((++foldN)%6===0) col.classList.add('fold'); }
@@ -200,7 +215,9 @@ function addCover(su){ var w=document.createElement('div'); w.className='pcol co
   var s=$('scroll'); if(s) w.style.width=s.clientWidth+'px';
   var leaf=document.createElement('div'); leaf.className='coverleaf';
   var title=stripBr(DATA.title)||DATA.title||'';
-  var qt=document.createElement('div'); qt.className='qianti'; qt.textContent=title; qt.setAttribute('data-n',Array.from(title).length);
+  var imperial=/御製|御制/.test(title);            // 御製经: 云龙版框 + 金题签
+  if(imperial){ var dg=document.createElement('div'); dg.className='dragon'; leaf.appendChild(dg); }
+  var qt=document.createElement('div'); qt.className='qianti'+(imperial?' imperial':''); qt.textContent=title; qt.setAttribute('data-n',Array.from(title).length);
   leaf.appendChild(qt);                            // 書衣封面只题经名(译人在卷首正文)
   w.appendChild(leaf); su.appendChild(w); }
 function fitCover(){ var lf=$('sutra').querySelector('.coverleaf'); if(!lf) return;
@@ -299,7 +316,7 @@ $('fontbtn').addEventListener('click',function(e){ e.stopPropagation(); closeToc
 applyFont();
 // 版式（纯视觉预制格式：天头地脚 / 经折折痕 / 乌丝栏）
 function loadStyle(){ try{return JSON.parse(localStorage.getItem('cbeta_style')||'{}');}catch(e){return {};} }
-var STYLE=Object.assign({tiandi:true, rule:'normal', folds:true, cover:true, coverImg:'cover-cichi.jpg', verse:true}, loadStyle());
+var STYLE=Object.assign({tiandi:true, rule:'normal', folds:true, cover:true, coverImg:'cover-cichi.jpg', verse:true, jing:false}, loadStyle());
 function saveStyle(){ try{localStorage.setItem('cbeta_style',JSON.stringify(STYLE));}catch(e){} }
 function applyStyle(){ var r=document.documentElement.style;
   r.setProperty('--pt', STYLE.tiandi?'16px':'9px'); r.setProperty('--pb', STYLE.tiandi?'6px':'9px');
@@ -312,6 +329,7 @@ function buildStyleMenu(){ var m=$('stylemenu'); var h='<div class="hd">版式</
   h+='<div class="ti" onclick="tglStyle(\'tiandi\')">'+(STYLE.tiandi?'☑':'☐')+' 天头地脚留白</div>';
   h+='<div class="ti" onclick="tglStyle(\'folds\')">'+(STYLE.folds?'☑':'☐')+' 经折·折痕</div>';
   h+='<div class="ti" onclick="tglStyle(\'verse\')">'+(STYLE.verse?'☑':'☐')+' 偈颂另排（每句换行）</div>';
+  h+='<div class="ti" onclick="tglStyle(\'jing\')">'+(STYLE.jing?'☑':'☐')+' 敬空抬头（序/御製内）</div>';
   if(STYLE.cover){ h+='<div class="hd" style="border:none;color:#8a6a3a;font-weight:400">書衣配色</div>';
     [['cover-cichi.jpg','磁青'],['cover-ciqing.jpg','瓷青']].forEach(function(c){
       h+='<div class="ti" onclick="setCover(\''+c[0]+'\')">'+(STYLE.coverImg===c[0]?'● ':'○ ')+c[1]+'</div>'; }); }
@@ -319,8 +337,8 @@ function buildStyleMenu(){ var m=$('stylemenu'); var h='<div class="hd">版式</
   ['off','weak','normal','strong'].forEach(function(v){ var lbl={off:'无',weak:'淡',normal:'常',strong:'重'}[v];
     h+='<div class="ti" onclick="setRule(\''+v+'\')">'+(STYLE.rule===v?'● ':'○ ')+lbl+'</div>'; });
   m.innerHTML=h; }
-window.tglStyle=function(k){ if(k==='tiandi'||k==='cover'||k==='verse') savePos(); STYLE[k]=!STYLE[k]; saveStyle(); applyStyle(); buildStyleMenu();
-  if(k==='cover'||k==='verse'){ render(); apply(); } else if(k==='tiandi'){ apply(); } };
+window.tglStyle=function(k){ if(k==='tiandi'||k==='cover'||k==='verse'||k==='jing') savePos(); STYLE[k]=!STYLE[k]; saveStyle(); applyStyle(); buildStyleMenu();
+  if(k==='cover'||k==='verse'||k==='jing'){ render(); apply(); } else if(k==='tiandi'){ apply(); } };
 window.setRule=function(v){ STYLE.rule=v; saveStyle(); applyStyle(); buildStyleMenu(); };
 window.setCover=function(img){ STYLE.coverImg=img; saveStyle(); applyStyle(); buildStyleMenu(); };
 $('stylebtn').addEventListener('click',function(e){ e.stopPropagation(); closeToc(); $('fontmenu').style.display='none'; buildStyleMenu(); var m=$('stylemenu'); m.style.display=(m.style.display==='none'?'block':'none'); });
