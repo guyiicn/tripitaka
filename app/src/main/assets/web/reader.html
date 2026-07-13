@@ -323,7 +323,7 @@ $('fontbtn').addEventListener('click',function(e){ e.stopPropagation(); closeToc
 applyFont();
 // 版式（纯视觉预制格式：天头地脚 / 经折折痕 / 乌丝栏）
 function loadStyle(){ try{return JSON.parse(localStorage.getItem('cbeta_style')||'{}');}catch(e){return {};} }
-var STYLE=Object.assign({tiandi:true, rule:'normal', folds:true, cover:true, coverImg:'cover-cichi.jpg', verse:true, jing:false, fri:false}, loadStyle());
+var STYLE=Object.assign({tiandi:true, rule:'normal', folds:true, cover:true, coverImg:'cover-cichi.jpg', verse:true, jing:false, fri:true}, loadStyle());
 function saveStyle(){ try{localStorage.setItem('cbeta_style',JSON.stringify(STYLE));}catch(e){} }
 function applyStyle(){ var r=document.documentElement.style;
   r.setProperty('--pt', STYLE.tiandi?'16px':'9px'); r.setProperty('--pb', STYLE.tiandi?'6px':'9px');
