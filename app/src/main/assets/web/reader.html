@@ -10,7 +10,8 @@
 @font-face{ font-family:'QJ'; src:url(font/qiji.woff2) format('woff2'); font-display:swap; }
 @font-face{ font-family:'HANA1'; src:url(font/hana1.woff2) format('woff2'); font-display:swap; }
 @font-face{ font-family:'HANA2'; src:url(font/hana2.woff2) format('woff2'); font-display:swap; }
-:root{ --paper:#efe4cb; --paper2:#e7d8b8; --ink:#2a2015; --zhu:#9e2b22; --frame:#6b4a28; }
+:root{ --paper:#efe4cb; --paper2:#e7d8b8; --ink:#2a2015; --zhu:#9e2b22; --frame:#6b4a28;
+  --rule:rgba(120,90,50,.22); --pt:16px; --pb:6px; }   /* 乌丝栏色 / 天头 / 地脚 */
 *{box-sizing:border-box;}
 html,body{margin:0;}
 body{ height:100dvh; display:flex; flex-direction:column; overflow:hidden; padding:var(--safe-top,0px) var(--safe-right,0px) var(--safe-bottom,0px) var(--safe-left,0px);
@@ -61,8 +62,11 @@ body{ height:100dvh; display:flex; flex-direction:column; overflow:hidden; paddi
 .frame{ display:inline-block; height:100%; margin:0 10px; padding:12px 18px;
   background: linear-gradient(0deg,var(--paper2),var(--paper)); }   /* 去书框边线+内阴影(牌记页/正文均无框; 桌面靠左右版框鱼尾栏成框) */
 .sutra{ writing-mode:vertical-rl; -webkit-writing-mode:vertical-rl; text-orientation:upright; height:100%; line-height:1; letter-spacing:0;
+  box-sizing:border-box; padding:var(--pt) 0 var(--pb);   /* 天头宽·地脚窄 */
   font-family:var(--bf,'JHSong'),'JGSong','HANA1','HANA2','Noto Serif CJK TC',serif; }
-.col{ display:block; height:100%; border-right:1px solid rgba(120,90,50,.22); padding-right:.16em; margin-right:.16em; }
+.col{ display:block; height:100%; border-right:1px solid var(--rule); padding-right:.16em; margin-right:.16em; }
+body.folds .col.fold{ border-right:1.5px solid rgba(120,90,50,.5);
+  box-shadow:3px 0 8px -1px rgba(90,60,25,.22), inset -3px 0 6px -4px rgba(90,60,25,.28); }  /* 经折·折痕(纸折缝) */
 .pcol{ display:flex; align-items:center; justify-content:center; height:100%; }
 .pcol img{ display:block; }   /* 尺寸由 JS fitPlates() 按 contain 显式计算 */
 .c{ position:relative; display:inline-block; }
@@ -88,6 +92,7 @@ body{ height:100dvh; display:flex; flex-direction:column; overflow:hidden; paddi
   <div class="header" id="header">
     <span class="btn" id="tocbtn">☰ 目錄</span>
     <span class="btn" id="fontbtn" title="切換字體">字</span>
+    <span class="btn" id="stylebtn" title="版式">版</span>
     <span class="btn" id="notebtn" title="夾註 顯示/隱藏">注</span>
     <span class="btn" id="bmbtn" title="加入書籤">☆</span>
     <span class="hlbl" id="jtitle"></span><span class="hby" id="jby"></span>
@@ -95,6 +100,7 @@ body{ height:100dvh; display:flex; flex-direction:column; overflow:hidden; paddi
     <span class="hclose" id="hclose" title="收起工具栏">✕</span>
     <div class="toc" id="toc" style="display:none"></div>
     <div class="toc" id="fontmenu" style="display:none;left:56px;"></div>
+    <div class="toc" id="stylemenu" style="display:none;left:92px;"></div>
   </div>
   <span id="htoggle" title="工具栏">☰</span>
   <div class="reading">
@@ -140,14 +146,14 @@ function render(){
     cells.push({k:'c',ch:t[i],m:ju[i]?'ju':(dou[i]?'dou':''),i:i});
     var nts=noteAt[i]; if(nts) nts.forEach(function(x){ pushNoteCells(cells,x); });
   }
-  var col=null,cnt=0,curxr=false;
+  var col=null,cnt=0,curxr=false,foldN=0;
   for(var ci=0;ci<cells.length;ci++){
     var ce=cells[ci];
     if(ce.k==='fen'){ fenAt[ce.i].forEach(function(pr){ var cf=addCol(su,pr[1]); cf.id='fen'+pr[2]; var fl=Array.from(stripBr(pr[0])||pr[0]); for(var z=0;z<fl.length;z++) addC(cf,fl[z]); }); col=null; cnt=0; continue; }
     if(ce.k==='br'){ col=null; cnt=0; continue; }
     if(ce.k==='c') curxr=inXr(ce.i);
     var w=(ce.k==='pc')?0.5:1;
-    if(!col||(cnt>0&&cnt+w>N+0.01)){ col=addCol(su, curxr?'xub':''); cnt=0; }
+    if(!col||(cnt>0&&cnt+w>N+0.01)){ col=addCol(su, curxr?'xub':''); cnt=0; if((++foldN)%6===0) col.classList.add('fold'); }
     if(ce.k==='c'){ if(col.getAttribute('data-ci')===null) col.setAttribute('data-ci',ce.i); if(gxSet[ce.i]!==undefined) addGaiji(col,gxSet[ce.i]); else addC(col,ce.ch,ce.m); } else addPC(col,ce.r,ce.l);
     cnt+=w;
   }
@@ -164,7 +170,7 @@ function sizeFont(){ var su=$('sutra'); var sc=$('scroll'), fr=su.parentElement;
   var col=su.querySelector('.col:not(.title):not(.trans):not(.fen):not(.xu)')||su.querySelector('.col');
   if(!col) return; su.style.fontSize=Math.floor(col.clientHeight/N*0.985)+'px'; goPos(); }
 function fitPlates(){ var su=$('sutra'), fr=su&&su.parentElement, s=$('scroll'); if(!fr||!s) return;
-  var H=fr.clientHeight, W=s.clientWidth; if(H<=0||W<=0) return;
+  var H=su.clientHeight, W=s.clientWidth; if(H<=0||W<=0) return;   // sutra 内容高(含天地 padding)
   var imgs=su.querySelectorAll('.pcol img');
   for(var i=0;i<imgs.length;i++){ var im=imgs[i]; var iw=im.naturalWidth||1080, ih=im.naturalHeight||1440;
     var k=Math.min(W/iw, H/ih); im.style.width=Math.round(iw*k)+'px'; im.style.height=Math.round(ih*k)+'px';
@@ -233,6 +239,7 @@ $('scroll').addEventListener('click',function(){ if($('header').classList.contai
 document.addEventListener('click',function(e){
   if(!$('toc').contains(e.target)&&e.target!==$('tocbtn')) closeToc();
   if(!$('fontmenu').contains(e.target)&&e.target!==$('fontbtn')) $('fontmenu').style.display='none';
+  if(!$('stylemenu').contains(e.target)&&e.target!==$('stylebtn')) $('stylemenu').style.display='none';
 });
 // 字體切換
 var FONTS=[['jh','JHSong','京華老宋体'],['hw','HW','汇文明朝体'],['qj','QJ','令东齐伋体·明刻本'],['nt','JGSong','思源宋体'],['wk','Wenkai','霞鹜文楷']];
@@ -245,8 +252,28 @@ function buildFontMenu(){ var m=$('fontmenu'); var cur=curFont(); var h='<div cl
 window.setFont=function(id){ savePos(); localStorage.setItem('cbeta_font',id); applyFont(); buildFontMenu(); $('fontmenu').style.display='none';
   if(document.fonts&&document.fonts.ready){ document.fonts.ready.then(function(){ apply(); }); }
   [120,450,1000].forEach(function(t){ setTimeout(apply,t); }); };
-$('fontbtn').addEventListener('click',function(e){ e.stopPropagation(); closeToc(); buildFontMenu(); var m=$('fontmenu'); m.style.display=(m.style.display==='none'?'block':'none'); });
+$('fontbtn').addEventListener('click',function(e){ e.stopPropagation(); closeToc(); $('stylemenu').style.display='none'; buildFontMenu(); var m=$('fontmenu'); m.style.display=(m.style.display==='none'?'block':'none'); });
 applyFont();
+// 版式（纯视觉预制格式：天头地脚 / 经折折痕 / 乌丝栏）
+function loadStyle(){ try{return JSON.parse(localStorage.getItem('cbeta_style')||'{}');}catch(e){return {};} }
+var STYLE=Object.assign({tiandi:true, rule:'normal', folds:false}, loadStyle());
+function saveStyle(){ try{localStorage.setItem('cbeta_style',JSON.stringify(STYLE));}catch(e){} }
+function applyStyle(){ var r=document.documentElement.style;
+  r.setProperty('--pt', STYLE.tiandi?'16px':'9px'); r.setProperty('--pb', STYLE.tiandi?'6px':'9px');
+  var rm={off:'transparent',weak:'rgba(120,90,50,.12)',normal:'rgba(120,90,50,.22)',strong:'rgba(120,90,50,.40)'};
+  r.setProperty('--rule', rm[STYLE.rule]||rm.normal);
+  document.body.classList.toggle('folds', !!STYLE.folds); }
+function buildStyleMenu(){ var m=$('stylemenu'); var h='<div class="hd">版式</div>';
+  h+='<div class="ti" onclick="tglStyle(\'tiandi\')">'+(STYLE.tiandi?'☑':'☐')+' 天头地脚留白</div>';
+  h+='<div class="ti" onclick="tglStyle(\'folds\')">'+(STYLE.folds?'☑':'☐')+' 经折·折痕</div>';
+  h+='<div class="hd" style="border:none;color:#8a6a3a;font-weight:400">乌丝栏（界行）</div>';
+  ['off','weak','normal','strong'].forEach(function(v){ var lbl={off:'无',weak:'淡',normal:'常',strong:'重'}[v];
+    h+='<div class="ti" onclick="setRule(\''+v+'\')">'+(STYLE.rule===v?'● ':'○ ')+lbl+'</div>'; });
+  m.innerHTML=h; }
+window.tglStyle=function(k){ if(k==='tiandi') savePos(); STYLE[k]=!STYLE[k]; saveStyle(); applyStyle(); buildStyleMenu(); if(k==='tiandi') apply(); };
+window.setRule=function(v){ STYLE.rule=v; saveStyle(); applyStyle(); buildStyleMenu(); };
+$('stylebtn').addEventListener('click',function(e){ e.stopPropagation(); closeToc(); $('fontmenu').style.display='none'; buildStyleMenu(); var m=$('stylemenu'); m.style.display=(m.style.display==='none'?'block':'none'); });
+applyStyle();
 // 夾註開關
 function syncNote(){ $('notebtn').style.color=SHOWNOTE?'#c0392b':'#9a805a'; $('notebtn').title=SHOWNOTE?'夾註：顯示（點擊隱藏）':'夾註：隱藏（點擊顯示）'; }
 $('notebtn').addEventListener('click',function(){ savePos(); SHOWNOTE=!SHOWNOTE; localStorage.setItem('cbeta_note',SHOWNOTE?'1':'0'); syncNote(); render(); apply(); });
