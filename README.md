@@ -18,6 +18,27 @@ woodblock print**, as an Android app and a web page, **fully offline**.
 - 目录折叠浏览、简体搜索、书签、夹注开关
 - Android：完全离线，经藏库随包（zstd + 训练词典压缩）；平板/手机自适应
 
+## 编辑原则 / Editorial principles
+
+- **忠实底本，不代施句读。** 阅读器只呈现 CBETA 底本原有的标点。不同藏经底本
+  不同：**大正藏（T）** 等经近代整理、带新式标点；而**龍藏（L，乾隆藏）**、
+  **嘉興藏（J）** 里的许多**禪師語錄**等系照旧刻本**白文**录入、本无句读。凡底本
+  为白文者，本阅读器**如实保留其无标点原貌**，不做机器自动断句——自动断句属推测、
+  非权威，古文（尤禪語）易断错，会为经文“添加”原本没有的东西。这是对底本的
+  学术尊重，并非渲染缺失。
+  <br>*Faithful to the source; no editorial punctuation is added.* The reader shows
+  only the punctuation present in the CBETA source. Canons such as the Taishō (T)
+  are modern punctuated editions, whereas many Chan recorded-sayings in the
+  Qianlong (L) and Jiaxing (J) canons were transcribed as **unpunctuated** classical
+  text. Where the source is unpunctuated, the reader **preserves it as-is** and does
+  **not** auto-segment — machine segmentation is conjectural and error-prone.
+
+- **阿拉伯数字转中文数字。** 底本（多见于现代白话序跋）中的阿拉伯数字一律转为
+  中文数字以契合竖排刻本体例：年份按读法（`1925`→一九二五），其余按数值
+  （`21`→二十一、`80`→八十、`3360`→三千三百六十）。
+  <br>Arabic numerals in the source (mostly in modern prefaces) are converted to
+  Chinese numerals to suit the vertical woodblock style.
+
 ## 结构 / Structure
 
 ```
