@@ -9,6 +9,30 @@ woodblock print**, as an Android app and a web page, **fully offline**.
 
 ---
 
+## 截图 / Screenshots
+
+### 手机 · 竖屏 / Phone (portrait)
+
+<p>
+  <img src="docs/screenshots/phone-home.png" width="23%" alt="首页 / Home">
+  <img src="docs/screenshots/phone-xinjing-jhsong.png" width="23%" alt="心經 開經偈 · 京華老宋">
+  <img src="docs/screenshots/phone-jingang-qiji.png" width="23%" alt="金剛經 · 令东齐伋">
+  <img src="docs/screenshots/phone-fahua-wenkai.png" width="23%" alt="法華經 · 霞鹜文楷">
+</p>
+
+首页目录 ｜ 心經·開經偈牌记页（京華老宋）｜ 金剛經（令东齐伋·明刻本）｜ 法華經（霞鹜文楷）
+
+### 平板 · 横屏 / Tablet (landscape)
+
+<p><img src="docs/screenshots/tablet-fahua-huiwen.png" width="90%" alt="法華經 · 汇文明朝 · 版框鱼尾书耳"></p>
+<p><img src="docs/screenshots/tablet-mituo-jgsong.png" width="90%" alt="阿彌陀經 · 思源宋"></p>
+
+法華經弘傳序（汇文明朝，含左右**版框鱼尾栏**与**书耳**）｜ 阿彌陀經（思源宋）
+
+> 五款可切正文字体：京華老宋 · 汇文明朝 · 令东齐伋 · 思源宋 · 霞鹜文楷
+
+---
+
 ## 特性 / Features
 
 - **竖排右起**、固定每列字数（15/17/20 可切）、朱色句读圈点
