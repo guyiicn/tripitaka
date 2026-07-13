@@ -1,9 +1,13 @@
-import glob,os,random,sqlite3,time,zstandard as zstd
-t0=time.time(); DB="/tmp/tripitaka.db"; LOG="/tmp/db_build.log"
+import glob,os,random,sqlite3,time,sys,zstandard as zstd
+# 用法: build_db.py [data_root] [catalog.json] [out.db]  (默认 /srv/cbeta)
+DATA=sys.argv[1] if len(sys.argv)>1 else "/srv/cbeta/data"
+CAT =sys.argv[2] if len(sys.argv)>2 else "/srv/cbeta/catalog.json"
+DB  =sys.argv[3] if len(sys.argv)>3 else "/tmp/tripitaka.db"
+t0=time.time(); LOG="/tmp/db_build.log"
 def log(m):
     open(LOG,"a").write("[%s] %s\n"%(time.strftime("%H:%M:%S"),m))
-files=[f for f in glob.glob("/srv/cbeta/data/*/*.json") if not f.endswith("_meta.json")]
-metas=glob.glob("/srv/cbeta/data/*/_meta.json")
+files=[f for f in glob.glob(DATA+"/*/*.json") if not f.endswith("_meta.json")]
+metas=glob.glob(DATA+"/*/_meta.json")
 log("START files=%d metas=%d"%(len(files),len(metas)))
 random.seed(1)
 train=[open(f,"rb").read() for f in random.sample(files,min(12000,len(files)))]
@@ -19,7 +23,7 @@ db.execute("CREATE TABLE meta(id TEXT PRIMARY KEY,zb BLOB)")
 db.execute("CREATE TABLE kv(k TEXT PRIMARY KEY,v BLOB)")
 db.execute("INSERT INTO kv VALUES('dict',?)",(dic.as_bytes(),))
 db.execute("INSERT INTO kv VALUES('schema','2')")
-db.execute("INSERT INTO kv VALUES('catalog',?)",(c.compress(open("/srv/cbeta/catalog.json","rb").read()),))
+db.execute("INSERT INTO kv VALUES('catalog',?)",(c.compress(open(CAT,"rb").read()),))
 for i,mf in enumerate(metas):
     jid=os.path.basename(os.path.dirname(mf))
     db.execute("INSERT INTO meta VALUES(?,?)",(jid,c.compress(open(mf,"rb").read())))
