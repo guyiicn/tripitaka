@@ -8,6 +8,13 @@ try:
     def to_s(t): return zhconv.convert(t, "zh-cn")
 except Exception:
     def to_s(t): return t
+try:                                    # 阿拉伯数字->中文(同目录 numconv.py)
+    import os as _os, sys as _sys
+    _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+    from numconv import convert_obj as _num_obj, convert_plain as _num_plain
+except Exception:
+    _num_obj = None
+    def _num_plain(s): return s
 
 SRC = "/home/nvidia/cbeta/cbeta-text"
 JU = set("。！？"); DOU = set("，、；：·")
@@ -170,10 +177,11 @@ def process_jing(jid, out_dir):
         text, ju, dou, fen, br, xr, note, gx = apply_notes(text, ju, dou, fen, br, xr)
         obj = {"id": jid, "title": title, "by": translator, "juan": jn, "n": len(text),
                "text": text, "ju": ju, "dou": dou, "fen": fen, "br": br, "xr": xr, "note": note, "gx": gx, "v": 2}
+        if _num_obj: obj, _ = _num_obj(obj, {"viol": 0})   # 阿拉伯数字->中文(含索引重映射)
         json.dump(obj, open(os.path.join(od, jn + ".json"), "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
         juans.append(jn)
     ALLCH.update(translator)
-    meta = {"id": jid, "canon": canon, "title": title, "by": translator, "juans": juans}
+    meta = {"id": jid, "canon": canon, "title": _num_plain(title), "by": _num_plain(translator), "juans": juans}
     json.dump(meta, open(os.path.join(od, "_meta.json"), "w", encoding="utf-8"), ensure_ascii=False)
     return meta
 

@@ -6,6 +6,7 @@
 用法: numconv.py test <json>  |  numconv.py batch <dataroot> <catalog.json>"""
 import json, os, sys, glob, re, shutil
 
+_AD = set('0123456789')          # 仅 ASCII 阿拉伯数字(不含 ①②/全角/上标等)
 _D = '〇一二三四五六七八九'
 def _digits(s): return ''.join(_D[int(c)] for c in s)
 def _chunk(n):                       # 0..9999 完整式(10->一十,110->一百一十)
@@ -45,9 +46,9 @@ def convert_map(text):
     L = len(text); out = []; newpos = [0]*(L+1); newlen = 0; i = 0
     while i < L:
         c = text[i]
-        if c.isdigit():
+        if c in _AD:
             j = i
-            while j < L and text[j].isdigit(): j += 1
+            while j < L and text[j] in _AD: j += 1
             skip = (i > 0 and _is_ident(text[i-1])) or (j < L and _is_ident(text[j]))
             if skip:
                 for k in range(i, j): newpos[k] = newlen; out.append(text[k]); newlen += 1
@@ -57,7 +58,7 @@ def convert_map(text):
                 out.append(cn); newlen += len(cn)
             i = j
         else:
-            newpos[i] = newlen; out.append(c); newlen += 1
+            newpos[i] = newlen; out.append(c); newlen += 1; i += 1
     newpos[L] = newlen
     return ''.join(out), newpos
 
@@ -74,13 +75,14 @@ def convert_obj(obj, stats):
         return obj, False            # 无数字, 不动
     nt, np = convert_map(text); L = len(text)
     def rm(x):
+        if x == -1: return -1        # 卷首夹注哨兵, 保留
         if x <= 0: return 0
         if x >= L: return len(nt)
         return np[x]
     # 句读对齐自检: 标记落在非数字字上时, 字符必须保持不变
     for arr in (obj.get('ju',[]), obj.get('dou',[])):
         for p in arr:
-            if 0 <= p < L and not text[p].isdigit() and nt[rm(p)] != text[p]:
+            if 0 <= p < L and text[p] not in _AD and nt[rm(p)] != text[p]:
                 stats['viol'] += 1
     for g in obj.get('gx',[]):
         p = g[0]
