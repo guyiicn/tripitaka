@@ -148,7 +148,7 @@ function render(){
     if(ce.k==='c') curxr=inXr(ce.i);
     var w=(ce.k==='pc')?0.5:1;
     if(!col||(cnt>0&&cnt+w>N+0.01)){ col=addCol(su, curxr?'xub':''); cnt=0; }
-    if(ce.k==='c'){ if(gxSet[ce.i]!==undefined) addGaiji(col,gxSet[ce.i]); else addC(col,ce.ch,ce.m); } else addPC(col,ce.r,ce.l);
+    if(ce.k==='c'){ if(col.getAttribute('data-ci')===null) col.setAttribute('data-ci',ce.i); if(gxSet[ce.i]!==undefined) addGaiji(col,gxSet[ce.i]); else addC(col,ce.ch,ce.m); } else addPC(col,ce.r,ce.l);
     cnt+=w;
   }
   if(DATA.juan===META.juans[META.juans.length-1]) addPlate(su,'huixiang');  // 整经卷末: 迴向偈牌记页
@@ -157,12 +157,12 @@ function render(){
 function addPlate(su,name){ var w=document.createElement('div'); w.className='pcol';
   var s=$('scroll'); if(s) w.style.width=s.clientWidth+'px';
   var im=document.createElement('img'); im.src='plate/'+name+'.png'; im.alt='';
-  im.addEventListener('load',function(){ try{ sizeFont(); toStart(); }catch(e){} });
+  im.addEventListener('load',function(){ try{ sizeFont(); goPos(); }catch(e){} });
   w.appendChild(im); su.appendChild(w); }
 function sizeFont(){ var su=$('sutra'); var sc=$('scroll'), fr=su.parentElement; if(sc&&fr) fr.style.height=(sc.clientHeight-28)+'px';
   fitPlates();
   var col=su.querySelector('.col:not(.title):not(.trans):not(.fen):not(.xu)')||su.querySelector('.col');
-  if(!col) return; su.style.fontSize=Math.floor(col.clientHeight/N*0.985)+'px'; toStart(); }
+  if(!col) return; su.style.fontSize=Math.floor(col.clientHeight/N*0.985)+'px'; goPos(); }
 function fitPlates(){ var su=$('sutra'), fr=su&&su.parentElement, s=$('scroll'); if(!fr||!s) return;
   var H=fr.clientHeight, W=s.clientWidth; if(H<=0||W<=0) return;
   var imgs=su.querySelectorAll('.pcol img');
@@ -170,14 +170,33 @@ function fitPlates(){ var su=$('sutra'), fr=su&&su.parentElement, s=$('scroll');
     var k=Math.min(W/iw, H/ih); im.style.width=Math.round(iw*k)+'px'; im.style.height=Math.round(ih*k)+'px';
     if(im.parentElement) im.parentElement.style.width=W+'px'; } }
 function fit(){ document.body.style.height=window.innerHeight+'px'; }
+// —— 阅读位置自动保存/恢复(每本书一条, 按字符索引, 跨字数/字体重排有效) ——
+function getPos(){ try{return JSON.parse(localStorage.getItem('cbeta_pos')||'{}');}catch(e){return {};} }
+function curCI(){ var s=$('scroll'),su=$('sutra'); if(!s||!su) return null;
+  var sr=s.getBoundingClientRect(), cols=su.querySelectorAll('.col[data-ci]'), best=null,bd=1e9;
+  for(var i=0;i<cols.length;i++){ var r=cols[i].getBoundingClientRect();
+    if(r.right<=sr.right+2 && r.right>sr.left){ var d=sr.right-r.right; if(d<bd){bd=d;best=cols[i];} } }
+  if(!best && cols.length) best=cols[0];
+  return best?parseInt(best.getAttribute('data-ci')):null; }
+function savePos(){ if(!DATA) return; var ci=curCI(); if(ci==null) return;
+  var p=getPos(); p[TID]={jn:DATA.juan,ci:ci,ti:(stripBr(DATA.title)||DATA.title||''),t:Date.now()};
+  try{localStorage.setItem('cbeta_pos',JSON.stringify(p));}catch(e){} }
+function scrollToCI(ci){ var s=$('scroll'),su=$('sutra'); if(!s) return false;
+  var cols=su.querySelectorAll('.col[data-ci]'), target=null;
+  for(var i=0;i<cols.length;i++){ if(parseInt(cols[i].getAttribute('data-ci'))<=ci) target=cols[i]; else break; }
+  if(!target) return false;
+  var sr=s.getBoundingClientRect(), tr=target.getBoundingClientRect(); s.scrollLeft += (tr.right-sr.right); return true; }
+function goPos(){ var sp=getPos()[TID];
+  if(sp && DATA && sp.jn===DATA.juan && sp.ci>0){ if(scrollToCI(sp.ci)) return; }
+  toStart(); }
 function toStart(){ var s=$('scroll'), su=$('sutra'); if(!s) return;
   s.scrollLeft=s.scrollWidth;                       // Blink/Android WebView: 起点=正max
   var first=su&&su.firstElementChild;                // 真正的阅读起点(可能是開經偈牌记页 .pcol, 也可能是首列). 引擎无关校正: iOS/WebKit 的 vertical-rl scrollLeft 取向相反, s.scrollLeft=sw 会钳到错端→停在大片空白
   if(first){ var sr=s.getBoundingClientRect(), fr=first.getBoundingClientRect();
     if(sr.right-fr.right>s.clientWidth*0.5){ first.scrollIntoView({block:'start',inline:'nearest'}); } } }
-function apply(){ fit(); sizeFont(); requestAnimationFrame(function(){ sizeFont(); toStart(); requestAnimationFrame(toStart); });
-  if(document.fonts&&document.fonts.ready){ document.fonts.ready.then(function(){ sizeFont(); toStart(); }); }
-  setTimeout(function(){ sizeFont(); toStart(); },300); }   // 移动端迟到 reflow(地址栏/慢字体) 再钉一次
+function apply(){ fit(); sizeFont(); requestAnimationFrame(function(){ sizeFont(); goPos(); requestAnimationFrame(goPos); });
+  if(document.fonts&&document.fonts.ready){ document.fonts.ready.then(function(){ sizeFont(); goPos(); }); }
+  setTimeout(function(){ sizeFont(); goPos(); },300); }   // 移动端迟到 reflow(地址栏/慢字体) 再钉一次
 function scrollToEl(el){ var s=$('scroll'); var sr=s.getBoundingClientRect(), er=el.getBoundingClientRect(); s.scrollLeft += (er.right - sr.right); }
 function colW(){ var c=$('sutra').querySelector('.col:not(.title):not(.trans)'); return c?c.getBoundingClientRect().width:42; }
 function pageMove(dir){ var s=$('scroll'); var cw=colW()||42; var cols=Math.max(1,Math.floor(s.clientWidth*0.86/cw)); s.scrollLeft += dir*cols*cw; }
@@ -202,7 +221,7 @@ function buildToc(){
 }
 window.jumpFen=function(idx){ var el=$('fen'+idx); if(el) scrollToEl(el); closeToc(); };
 window.go=function(jn){ JN=jn; loadJuan(); };
-window.setN=function(x){ N=x; buildNav(); render(); apply(); };
+window.setN=function(x){ savePos(); N=x; buildNav(); render(); apply(); };
 window.closeToc=function(){ $('toc').style.display='none'; };
 $('tocbtn').addEventListener('click',function(e){ e.stopPropagation(); $('fontmenu').style.display='none'; var t=$('toc'); t.style.display=(t.style.display==='none'?'block':'none'); });
 // 工具栏 收起/展开 (默认收起)
@@ -223,14 +242,14 @@ function applyFont(){ var id=curFont(); var f=null; for(var i=0;i<FONTS.length;i
 function buildFontMenu(){ var m=$('fontmenu'); var cur=curFont(); var h='<div class="hd">正文字體</div>';
   FONTS.forEach(function(f){ h+='<div class="ti" onclick="setFont(\''+f[0]+'\')">'+(f[0]===cur?'● ':'○ ')+f[2]+'</div>'; });
   h+='<div class="hd" style="border:none;color:#8a6a3a;font-weight:400">序文恒用楷体</div>'; m.innerHTML=h; }
-window.setFont=function(id){ localStorage.setItem('cbeta_font',id); applyFont(); buildFontMenu(); $('fontmenu').style.display='none';
+window.setFont=function(id){ savePos(); localStorage.setItem('cbeta_font',id); applyFont(); buildFontMenu(); $('fontmenu').style.display='none';
   if(document.fonts&&document.fonts.ready){ document.fonts.ready.then(function(){ apply(); }); }
   [120,450,1000].forEach(function(t){ setTimeout(apply,t); }); };
 $('fontbtn').addEventListener('click',function(e){ e.stopPropagation(); closeToc(); buildFontMenu(); var m=$('fontmenu'); m.style.display=(m.style.display==='none'?'block':'none'); });
 applyFont();
 // 夾註開關
 function syncNote(){ $('notebtn').style.color=SHOWNOTE?'#c0392b':'#9a805a'; $('notebtn').title=SHOWNOTE?'夾註：顯示（點擊隱藏）':'夾註：隱藏（點擊顯示）'; }
-$('notebtn').addEventListener('click',function(){ SHOWNOTE=!SHOWNOTE; localStorage.setItem('cbeta_note',SHOWNOTE?'1':'0'); syncNote(); render(); apply(); });
+$('notebtn').addEventListener('click',function(){ savePos(); SHOWNOTE=!SHOWNOTE; localStorage.setItem('cbeta_note',SHOWNOTE?'1':'0'); syncNote(); render(); apply(); });
 syncNote();
 // 書籤
 function getBm(){ try{return JSON.parse(localStorage.getItem('cbeta_bm')||'[]');}catch(e){return[];} }
@@ -253,7 +272,12 @@ function loadJuan(){
     document.title=(stripBr(d.title)||d.title)+' · CBETA'; buildNav(); buildToc(); setEars(); render(); apply(); syncBm();
   }).catch(function(e){ $('jtitle').textContent='載入失敗'; });
 }
-fetch('data/'+TID+'/_meta.json').then(function(r){return r.json();}).then(function(m){ META=m; if(!JN) JN=m.juans[0]; loadJuan(); });
+fetch('data/'+TID+'/_meta.json').then(function(r){return r.json();}).then(function(m){ META=m; if(!JN){ var sp=getPos()[TID]; JN=(sp&&sp.jn&&m.juans.indexOf(sp.jn)>=0)?sp.jn:m.juans[0]; } loadJuan(); });
+// 自动保存阅读位置(滚动防抖 + 定时 + 隐藏/离开)
+var _svT; if($('scroll')) $('scroll').addEventListener('scroll',function(){ clearTimeout(_svT); _svT=setTimeout(savePos,700); });
+setInterval(function(){ if(!document.hidden) savePos(); },5000);
+window.addEventListener('pagehide',savePos);
+document.addEventListener('visibilitychange',function(){ if(document.hidden) savePos(); });
 // 鍵盤 & 滾輪(整列翻, 消除半列切割)
 document.addEventListener('keydown',function(e){
   if(e.key==='ArrowLeft'||e.key==='ArrowDown'||e.key==='PageDown'||e.key===' '){ pageMove(-1); e.preventDefault(); }
