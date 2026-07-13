@@ -69,6 +69,16 @@ body.folds .col.fold{ border-right:1.5px solid rgba(120,90,50,.5);
   box-shadow:3px 0 8px -1px rgba(90,60,25,.22), inset -3px 0 6px -4px rgba(90,60,25,.28); }  /* 经折·折痕(纸折缝) */
 .pcol{ display:flex; align-items:center; justify-content:center; height:100%; }
 .pcol img{ display:block; }   /* 尺寸由 JS fitPlates() 按 contain 显式计算 */
+.pcol.cover{ padding:0; }
+.coverleaf{ width:100%; height:100%; background-image:var(--coverimg); background-size:cover; background-position:center;
+  background-color:#33414d; display:flex; align-items:center; justify-content:center; position:relative; }
+.qianti{ writing-mode:vertical-rl; text-orientation:upright; display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(100deg,#f5eeda,#ece0bf); color:#241a10; font-family:'JHSong','JGSong',serif;
+  padding:34px 16px; letter-spacing:.14em; line-height:1.12; max-height:80%; font-weight:600;
+  border:1px solid rgba(120,90,50,.45);
+  box-shadow:0 6px 22px rgba(0,0,0,.32), inset 0 0 0 3px rgba(255,252,244,.62), inset 0 0 0 4.5px rgba(120,90,50,.4); }
+.coveryz{ position:absolute; bottom:6.5%; writing-mode:vertical-rl; text-orientation:upright; color:rgba(242,234,212,.85);
+  font-family:'JHSong',serif; letter-spacing:.1em; text-shadow:0 1px 4px rgba(0,0,0,.45); }
 .c{ position:relative; display:inline-block; }
 .c.ju::after,.c.dou::after{ position:absolute; color:var(--zhu); font-size:.4em; line-height:1; right:-.36em; bottom:-.02em; }
 .c.ju::after{ content:"○"; } .c.dou::after{ content:"、"; }
@@ -134,7 +144,8 @@ function render(){
   var noteAt={}; if(SHOWNOTE) (DATA.note||[]).forEach(function(nt){ (noteAt[nt[0]]=noteAt[nt[0]]||[]).push(nt[1]); });
   var gxSet={}; (DATA.gx||[]).forEach(function(g){ gxSet[g[0]]=g[1]; });
   if(DATA.juan===META.juans[0]){
-    addPlate(su,'kaijing');                        // 整经卷首: 開經偈牌记页
+    if(STYLE.cover) addCover(su);                  // 整经卷首最前: 書衣·題簽封面
+    addPlate(su,'kaijing');                        // 開經偈牌记页
     var tt=Array.from(stripBr(DATA.title)||DATA.title); var tN=Math.max(1,Math.round(N/1.16)); for(var to=0;to<tt.length;to+=tN){ var ct=addCol(su,'title'); for(var k=to;k<Math.min(to+tN,tt.length);k++) addC(ct,tt[k]); }
     if(DATA.by){ var bb=Array.from(stripBr(DATA.by)); var cb=addCol(su,'trans'); for(var k2=0;k2<bb.length;k2++) addC(cb,bb[k2]); }
   }
@@ -165,8 +176,20 @@ function addPlate(su,name){ var w=document.createElement('div'); w.className='pc
   var im=document.createElement('img'); im.src='plate/'+name+'.png'; im.alt='';
   im.addEventListener('load',function(){ try{ sizeFont(); goPos(); }catch(e){} });
   w.appendChild(im); su.appendChild(w); }
+function addCover(su){ var w=document.createElement('div'); w.className='pcol cover';
+  var s=$('scroll'); if(s) w.style.width=s.clientWidth+'px';
+  var leaf=document.createElement('div'); leaf.className='coverleaf';
+  var title=stripBr(DATA.title)||DATA.title||'';
+  var qt=document.createElement('div'); qt.className='qianti'; qt.textContent=title; qt.setAttribute('data-n',Array.from(title).length);
+  leaf.appendChild(qt);                            // 書衣封面只题经名(译人在卷首正文)
+  w.appendChild(leaf); su.appendChild(w); }
+function fitCover(){ var lf=$('sutra').querySelector('.coverleaf'); if(!lf) return;
+  var qt=lf.querySelector('.qianti'); if(!qt) return;
+  var H=lf.clientHeight, W=lf.clientWidth, n=parseInt(qt.getAttribute('data-n'))||4;
+  var fs=Math.min(H*0.60/Math.max(n,3), W*0.15); qt.style.fontSize=Math.round(fs)+'px';
+  var yz=lf.querySelector('.coveryz'); if(yz) yz.style.fontSize=Math.max(12,Math.round(fs*0.32))+'px'; }
 function sizeFont(){ var su=$('sutra'); var sc=$('scroll'), fr=su.parentElement; if(sc&&fr) fr.style.height=(sc.clientHeight-28)+'px';
-  fitPlates();
+  fitPlates(); fitCover();
   var col=su.querySelector('.col:not(.title):not(.trans):not(.fen):not(.xu)')||su.querySelector('.col');
   if(!col) return; su.style.fontSize=Math.floor(col.clientHeight/N*0.985)+'px'; goPos(); }
 function fitPlates(){ var su=$('sutra'), fr=su&&su.parentElement, s=$('scroll'); if(!fr||!s) return;
@@ -256,22 +279,29 @@ $('fontbtn').addEventListener('click',function(e){ e.stopPropagation(); closeToc
 applyFont();
 // 版式（纯视觉预制格式：天头地脚 / 经折折痕 / 乌丝栏）
 function loadStyle(){ try{return JSON.parse(localStorage.getItem('cbeta_style')||'{}');}catch(e){return {};} }
-var STYLE=Object.assign({tiandi:true, rule:'normal', folds:false}, loadStyle());
+var STYLE=Object.assign({tiandi:true, rule:'normal', folds:true, cover:true, coverImg:'cover-cichi.jpg'}, loadStyle());
 function saveStyle(){ try{localStorage.setItem('cbeta_style',JSON.stringify(STYLE));}catch(e){} }
 function applyStyle(){ var r=document.documentElement.style;
   r.setProperty('--pt', STYLE.tiandi?'16px':'9px'); r.setProperty('--pb', STYLE.tiandi?'6px':'9px');
   var rm={off:'transparent',weak:'rgba(120,90,50,.12)',normal:'rgba(120,90,50,.22)',strong:'rgba(120,90,50,.40)'};
   r.setProperty('--rule', rm[STYLE.rule]||rm.normal);
+  r.setProperty('--coverimg', "url('plate/"+(STYLE.coverImg||'cover-cichi.jpg')+"')");
   document.body.classList.toggle('folds', !!STYLE.folds); }
 function buildStyleMenu(){ var m=$('stylemenu'); var h='<div class="hd">版式</div>';
+  h+='<div class="ti" onclick="tglStyle(\'cover\')">'+(STYLE.cover?'☑':'☐')+' 書衣封面（卷首）</div>';
   h+='<div class="ti" onclick="tglStyle(\'tiandi\')">'+(STYLE.tiandi?'☑':'☐')+' 天头地脚留白</div>';
   h+='<div class="ti" onclick="tglStyle(\'folds\')">'+(STYLE.folds?'☑':'☐')+' 经折·折痕</div>';
+  if(STYLE.cover){ h+='<div class="hd" style="border:none;color:#8a6a3a;font-weight:400">書衣配色</div>';
+    [['cover-cichi.jpg','磁青'],['cover-ciqing.jpg','瓷青']].forEach(function(c){
+      h+='<div class="ti" onclick="setCover(\''+c[0]+'\')">'+(STYLE.coverImg===c[0]?'● ':'○ ')+c[1]+'</div>'; }); }
   h+='<div class="hd" style="border:none;color:#8a6a3a;font-weight:400">乌丝栏（界行）</div>';
   ['off','weak','normal','strong'].forEach(function(v){ var lbl={off:'无',weak:'淡',normal:'常',strong:'重'}[v];
     h+='<div class="ti" onclick="setRule(\''+v+'\')">'+(STYLE.rule===v?'● ':'○ ')+lbl+'</div>'; });
   m.innerHTML=h; }
-window.tglStyle=function(k){ if(k==='tiandi') savePos(); STYLE[k]=!STYLE[k]; saveStyle(); applyStyle(); buildStyleMenu(); if(k==='tiandi') apply(); };
+window.tglStyle=function(k){ if(k==='tiandi'||k==='cover') savePos(); STYLE[k]=!STYLE[k]; saveStyle(); applyStyle(); buildStyleMenu();
+  if(k==='cover'){ render(); apply(); } else if(k==='tiandi'){ apply(); } };
 window.setRule=function(v){ STYLE.rule=v; saveStyle(); applyStyle(); buildStyleMenu(); };
+window.setCover=function(img){ STYLE.coverImg=img; saveStyle(); applyStyle(); buildStyleMenu(); };
 $('stylebtn').addEventListener('click',function(e){ e.stopPropagation(); closeToc(); $('fontmenu').style.display='none'; buildStyleMenu(); var m=$('stylemenu'); m.style.display=(m.style.display==='none'?'block':'none'); });
 applyStyle();
 // 夾註開關
