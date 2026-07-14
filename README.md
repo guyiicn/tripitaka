@@ -22,6 +22,16 @@ woodblock print**, as an Android app and a web page, **fully offline**.
 
 首页目录 ｜ 心經·開經偈牌记页（京華老宋）｜ 金剛經（令东齐伋·明刻本）｜ 法華經（霞鹜文楷）
 
+### 仪式叶 · 書衣 / 扉画 / Ceremonial leaves
+
+<p>
+  <img src="docs/screenshots/phone-cover-fahua.png" width="30%" alt="書衣封面 · 磁青题签">
+  <img src="docs/screenshots/phone-cover-imperial.png" width="30%" alt="御製 · 云龙金框封面">
+  <img src="docs/screenshots/phone-frontispiece.png" width="30%" alt="卷首扉画 · 说法图">
+</p>
+
+書衣·題簽封面（磁青细绢）｜ 御製经·云龙金框（双龙金线）｜ 卷首扉画·说法图（木刻线描）
+
 ### 平板 · 横屏 / Tablet (landscape)
 
 <p><img src="docs/screenshots/tablet-fahua-huiwen.png" width="90%" alt="法華經 · 汇文明朝 · 版框鱼尾书耳"></p>
@@ -40,7 +50,18 @@ woodblock print**, as an Android app and a web page, **fully offline**.
 - **缺字**（CBETA 组字式）以 □ 占位；**生僻字**（Ext-B+）以 Plangothic 兜底
 - 5 款可切正文字体（京華老宋 / 汇文明朝 / 令东齐伋 / 思源宋 / 霞鹜文楷）
 - 目录折叠浏览、简体搜索、书签、夹注开关
+- **阅读位置自动记忆**：换字数/字体/夹注、重开经文都续读（按字符索引，不从头）
+- 底本**阿拉伯数字转中文**（年份逐字、其余数值），契合竖排刻本
 - Android：完全离线，经藏库随包（zstd + 训练词典压缩）；平板/手机自适应
+
+### 版式 · 预制格式库（工具栏「版」一键切换）
+
+- **書衣·題簽封面**：磁青/瓷青细绢题签；**御製经**自动升级**云龙金框**
+- **扉画·护法**：卷首**说法图**、卷末**韦陀**（黑线木刻叠纸底）
+- **開經偈 / 迴向偈** 牌记页；**经折·折痕**、**天头地脚留白**、**乌丝栏**（无/淡/常/重）
+- **偈颂另排**：触发词+等长句读检测，偈句自成一列顶格
+- **敬空抬头**：限序/御製内，荣衔前空格/抬头（默认关）
+- 完整仪式流程：書衣封面 → 说法图 → 開經偈 → 正文 → 迴向偈 → 韦陀护法
 
 ## 编辑原则 / Editorial principles
 
